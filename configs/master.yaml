@@ -1,0 +1,101 @@
+version: "0.4.0"
+system:
+  model_name: OCRTransformer
+
+  outputs:
+    tb_log_dir: "training_logs"
+    training_log: "training.log"
+    checkpoints: "checkpoints"
+  desc: "nrtr_hyperparams"
+  slack_api: 'https://hooks.slack.com/services/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'
+
+
+model:
+  model_size: 512
+  multiheads: 8
+
+  encoder:
+    stacks: 3
+    dropout: 0.2
+    feed_forward_size: 2048
+
+  decoder:
+    stacks: 3
+    dropout: 0.2
+    feed_forward_size: 2048
+
+  backbone:
+    gcb:
+      ratio: 0.0625
+      headers: 1
+      att_scale: True
+      fusion_type: 'channel_add' # channel_add channel_mul channel_concat
+      pooling_type: 'att'
+      layers:
+        - False
+        - True
+        - True
+        - True
+
+
+train:
+  epochs: 3000
+  batch_size: 50
+  loader_workers: 8
+  fp16: True
+  log_interval: 100
+
+  optim:
+    name: Adam
+    args:
+      lr: 0.0002
+
+#  lr_scheduler:
+#    name: 'ExponentialDecay'
+#    args:
+#      initial_learning_rate: 0.0002
+#      decay_steps: 70000
+#      decay_rate: 0.1
+#      staircase: False
+  lr_scheduler:
+    name: 'CustomSchedule'
+    args:
+      d_model: 512
+      warmup_steps: 20000
+
+#  lr_scheduler:
+#    name: ''
+#    args: ''
+
+  checkpoints:
+    name: "OCRTransformer"
+    interval: 2000
+    monitor: "+word_acc"
+    monitor_start: 0.9
+
+eval:
+  batch_size: 50
+  loader_workers: 8
+  interval: 1
+  interval_iter: 1000
+  case_sensitive: False
+
+
+dataset:
+  train:
+    datasets:
+      synth800k: "/home/luning/dev/data/SynthText800k/synth_lmdb"
+    width: 160
+    height: 48
+
+  eval:
+    datasets:
+      icdar03: "/data/ocr/reg/evaluation/IC03_867" # icdar03
+      icdar13: "/data/ocr/reg/evaluation/IC13_1015" # icdar13
+      icdar15: "/data/ocr/reg/evaluation/IC15_2077" # icdar15
+      iiit5k: "/data/ocr/reg/evaluation/IIIT5k_3000" # iiit5k
+      svt: "/data/ocr/reg/evaluation/SVT"
+      svtp: "/data/ocr/reg/evaluation/SVTP" # svt
+      cute80: "/data/ocr/reg/evaluation/CUTE80"
+    width: 160
+    height: 48
