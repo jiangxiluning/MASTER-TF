@@ -7,7 +7,7 @@ system:
     training_log: "training.log"
     checkpoints: "checkpoints"
   desc: "mj"
-  slack_api: 'https://hooks.slack.com/services/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'
+  slack_api: ''
 
 
 model:
