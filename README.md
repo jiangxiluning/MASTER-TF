@@ -4,8 +4,6 @@ MASTER is a scene text recognition model which is based on self-attention mechan
 ![WX20200703-001140.png](https://i.loli.net/2020/07/03/Nj1CPvrT7J2ehWy.png)
 
 This repo is a tensorflow implemention which may differ from our pytorch implementaion when we have done in PingAn for paper.
-
-[TOC]
             
             
 This repo is its tensorflow implemention.
@@ -51,7 +49,7 @@ python train.py -c [your_config].yaml -f [checkpoint]
 
 ## Eval
 
-Currently, you can download checkpoint from [here](https://pan.baidu.com/s/1ijpo8WRZHR-AyDclxQVDiw) with code ** o6g9 **, this checkpoint was trained with MJ and selected
+Currently, you can download checkpoint from [here](https://pan.baidu.com/s/1ijpo8WRZHR-AyDclxQVDiw) with code **o6g9**, this checkpoint was trained with MJ and selected
 for the best performance of iiit5k dataset. Below is the comparision between pytorch version and tensorflow version.
 
 | Framework | Dataset | Word Accuracy | Training Details |
@@ -61,7 +59,7 @@ for the best performance of iiit5k dataset. Below is the comparision between pyt
 
 
 
-Please download the checkpoint and model config from [here](https://pan.baidu.com/s/1ijpo8WRZHR-AyDclxQVDiw) with code ** o6g9 ** and unzip it, and you can get this metric by running:
+Please download the checkpoint and model config from [here](https://pan.baidu.com/s/1ijpo8WRZHR-AyDclxQVDiw) with code **o6g9** and unzip it, and you can get this metric by running:
 
 ```bash
 python eval_iiit5k.py --ckpt [checkpoint file] --cfg [model config] -o [output dir] -i [iiit5k lmdb test dataset]
