@@ -6,8 +6,8 @@ system:
     tb_log_dir: "training_logs"
     training_log: "training.log"
     checkpoints: "checkpoints"
-  desc: "test"
-  slack_api: ''
+  desc: "mj"
+  slack_api: 'https://hooks.slack.com/services/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'
 
 
 model:
@@ -21,7 +21,7 @@ model:
 
   decoder:
     stacks: 3
-    dropout: 0
+    dropout: 0.2
     feed_forward_size: 2048
 
   backbone:
@@ -48,24 +48,24 @@ train:
   optim:
     name: Adam
     args:
-      lr: 0.00007
-
-#  lr_scheduler:
-#    name: 'ExponentialDecay'
-#    args:
-#      initial_learning_rate: 0.0002
-#      decay_steps: 70000
-#      decay_rate: 0.1
-#      staircase: False
-#  lr_scheduler:
-#    name: 'CustomSchedule'
-#    args:
-#      d_model: 512
-#      warmup_steps: 20000
+      lr: 0.00002
 
   lr_scheduler:
-    name: ''
-    args: ''
+    name: 'ExponentialDecay'
+    args:
+      initial_learning_rate: 0.00002
+      decay_steps: 70000
+      decay_rate: 0.1
+      staircase: True
+  # lr_scheduler:
+  #   name: 'CustomSchedule'
+  #   args:
+  #     d_model: 512
+  #     warmup_steps: 20000
+
+  # lr_scheduler:
+  #   name: ''
+  #   args: ''
 
   checkpoints:
     name: "OCRTransformer"
@@ -84,7 +84,7 @@ eval:
 dataset:
   train:
     datasets:
-      #synth800k: "/data/ocr/reg/data_lmdb_release/data_lmdb_baidu/data_lmdb_release/training/ST"
+      # synth800k: "/data/ocr/reg/data_lmdb_release/data_lmdb_baidu/data_lmdb_release/training/ST"
       mj: "/data/ocr/reg/data_lmdb_release/data_lmdb_baidu/data_lmdb_release/training/MJ/MJ_train"
     width: 160
     height: 48

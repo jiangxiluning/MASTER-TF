@@ -35,19 +35,19 @@ class MasterModel(tf.keras.models.Model):
 
         self.feature_extractor = backbone.Resnet31(backbone.BasicBlock, backbone_config=config.backbone)
         self.seq_embedding = keras.layers.Embedding(vocab_size, self.d_model)
-        # self.decoder = transformer.Decoder(self.d_model,
-        #                                    self.headers,
-        #                                    position_num=utils.LabelTransformer.max_length,
-        #                                    config=config.decoder)
+        self.decoder = transformer.Decoder(self.d_model,
+                                           self.headers,
+                                           position_num=utils.LabelTransformer.max_length,
+                                           config=config.decoder)
 
-        self.decoder = transformer_tf.Decoder(num_layers=config.decoder.stacks,
-                                              d_model=self.d_model,
-                                              num_heads=self.headers,
-                                              dff=config.decoder.feed_forward_size,
-                                              target_vocab_size=vocab_size,
-                                              maximum_position_encoding=utils.LabelTransformer.max_length,
-                                              rate=config.decoder.dropout
-                                             )
+        # self.decoder = transformer_tf.Decoder(num_layers=config.decoder.stacks,
+        #                                       d_model=self.d_model,
+        #                                       num_heads=self.headers,
+        #                                       dff=config.decoder.feed_forward_size,
+        #                                       target_vocab_size=vocab_size,
+        #                                       maximum_position_encoding=utils.LabelTransformer.max_length,
+        #                                       rate=config.decoder.dropout
+        #                                      )
         self.feature_pe = transformer.positional_encoding(image_size[0] * image_size[1], self.d_model)
         self.linear = keras.layers.Dense(vocab_size, kernel_initializer=tf.initializers.he_uniform())
 
@@ -57,56 +57,55 @@ class MasterModel(tf.keras.models.Model):
         combined_mask = tf.maximum(target_padding_mask, look_ahead_mask)
         return None, combined_mask
 
-
-    def call(self, image: tf.Tensor, transcript: tf.Tensor, training=False):
-        feature = self.feature_extractor(image, training=training)
+    @tf.function
+    def call(self, image: tf.Tensor, transcript: tf.Tensor):
+        feature = self.feature_extractor(image, training=True)
         B, H, W, C = feature.shape
+
         feature = tf.reshape(feature, shape=(B, H*W, C))
         memory = feature + self.feature_pe[:, :H*W, :]
 
         _, tgt_mask = self.make_mask(transcript)
 
-        #output = self.decoder(self.seq_embedding(transcript), memory, None, tgt_mask, training=training)
-        output, _ = self.decoder(transcript, memory, training, tgt_mask, None)
+        output = self.decoder(self.seq_embedding(transcript), memory, None, tgt_mask, training=True)
+        #output, _ = self.decoder(transcript, memory, training, tgt_mask, None)
         logits = self.linear(output)
-
 
         return logits
 
-    @tf.function
-    def predict(self,
-                image: tf.Tensor,
-                training=tf.constant(False)):
-
-        feature = self.feature_extractor(image, training=training)
-        B, H, W, C = feature.shape
-        feature = tf.reshape(feature, shape=(B, H*W, C))
-        memory = feature + self.feature_pe[:, :H*W, :]
-
-        max_len = tf.constant(utils.LabelTransformer.max_length, dtype=tf.int32)
-        start_symbol = tf.constant(utils.LabelTransformer.dict['<SOS>'], dtype=tf.int32)
-
-        if tf.equal(max_len, tf.constant(-1)):
-            max_len = tf.constant(100, dtype=tf.int32)
-        output = tf.fill(dims=(B, 1), value=start_symbol)
-
-        final_logits = tf.zeros(shape=(B, max_len - 1, self.vocab_size), dtype=tf.float32)
-        for i in tf.range(max_len - 1):
-            tf.autograph.experimental.set_loop_options(shape_invariants=[(output, tf.TensorShape([B, None]))])
-            _, combined_mask = self.make_mask(output)
-            logits, _ = self.decoder(output, memory, training, combined_mask, None)
-            #logits = self.decoder(self.seq_embedding(output), memory, None, combined_mask, training=False)
-            logits = self.linear(logits)
-            last_logits = logits[:, -1:, :]
-
-            predicted_id = tf.cast(tf.argmax(last_logits, axis=-1), tf.int32)
-            output = tf.concat([output, predicted_id], axis=-1)
-
-            if i == (max_len - 2):
-                final_logits = logits
-
-        return output, final_logits
-
+    # @tf.function
+    # def predict(self,
+    #             image: tf.Tensor,
+    #             training=tf.constant(False)):
+    #
+    #     feature = self.feature_extractor(image, training=training)
+    #     B, H, W, C = feature.shape
+    #     feature = tf.reshape(feature, shape=(B, H*W, C))
+    #     memory = feature + self.feature_pe[:, :H*W, :]
+    #
+    #     max_len = tf.constant(utils.LabelTransformer.max_length, dtype=tf.int32)
+    #     start_symbol = tf.constant(utils.LabelTransformer.dict['<SOS>'], dtype=tf.int32)
+    #
+    #     if tf.equal(max_len, tf.constant(-1)):
+    #         max_len = tf.constant(100, dtype=tf.int32)
+    #     output = tf.fill(dims=(B, 1), value=start_symbol)
+    #
+    #     final_logits = tf.zeros(shape=(B, max_len - 1, self.vocab_size), dtype=tf.float32)
+    #     for i in tf.range(max_len - 1):
+    #         tf.autograph.experimental.set_loop_options(shape_invariants=[(output, tf.TensorShape([B, None]))])
+    #         _, combined_mask = self.make_mask(output)
+    #         logits, _ = self.decoder(output, memory, training, combined_mask, None)
+    #         #logits = self.decoder(self.seq_embedding(output), memory, None, combined_mask, training=False)
+    #         logits = self.linear(logits)
+    #         last_logits = logits[:, -1:, :]
+    #
+    #         predicted_id = tf.cast(tf.argmax(last_logits, axis=-1), tf.int32)
+    #         output = tf.concat([output, predicted_id], axis=-1)
+    #
+    #         if i == (max_len - 2):
+    #             final_logits = logits
+    #
+    #     return output, final_logits
 
     @tf.function
     def decode(self,
@@ -143,9 +142,10 @@ class MasterModel(tf.keras.models.Model):
         final_logits = tf.zeros(shape=(B, max_len - 1, self.vocab_size), dtype=tf.float32)
         # max_len = len + 2
         for i in range(max_len - 1):
+            #tf.autograph.experimental.set_loop_options(shape_invariants=[(final_logits, tf.TensorShape([None, None, 66]))])
             _, ys_mask = self.make_mask(ys)
-            output, _ = self.decoder(ys, memory, False, ys_mask, None)
-            #output = self.decoder(self.seq_embedding(ys), memory, None, ys_mask, training=False)
+            #output, _ = self.decoder(ys, memory, False, ys_mask, None)
+            output = self.decoder(self.seq_embedding(ys), memory, None, ys_mask, training=False)
             logits = self.linear(output)
             prob = tf.nn.softmax(logits, axis=-1)
             next_word = tf.argmax(prob, axis=-1, output_type=ys.dtype)

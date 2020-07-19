@@ -1,6 +1,6 @@
 outputs/
 .vscode/
 .idea/
-.pytest_cache
+.pytest_cache/
 __pycache__/
 .python-version

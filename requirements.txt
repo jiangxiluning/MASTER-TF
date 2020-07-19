@@ -3,7 +3,7 @@ lmdb~=0.98
 six~=1.14.0
 click~=7.1.2
 loguru~=0.5.1
-tensorflow-gpu=2.2.0
+tensorflow-gpu==2.2.0
 easydict
 anyconfig
 pyyaml
@@ -11,3 +11,5 @@ pytest
 pillow
 cython
 notifiers
+opencv-python
+matplotlib

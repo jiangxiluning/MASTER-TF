@@ -39,7 +39,7 @@ def test_training():
     pass
 
 def test_backbone():
-    config = anyconfig.load('/home/luning/dev/projects/master-tf/configs/master.yaml')
+    config = anyconfig.load('configs/master.yaml')
     config = easydict.EasyDict(config)
     bb_config = config['model']['backbone']
 
@@ -49,13 +49,21 @@ def test_backbone():
     print(output.shape)
 
 def test_master():
-    config = anyconfig.load('/home/luning/dev/projects/master-tf/configs/master.yaml')
+    config = anyconfig.load('configs/master.yaml')
     config = easydict.EasyDict(config)
 
     image = tf.random.normal([10, 48, 160, 3])
     target = tf.constant(np.random.randint(0,10, (10, 50)), dtype=tf.uint8)
     model = MasterModel(config.model, 10, (48, 160))
-    logits = model(image, target, training=True)
+    optimizer = tf.optimizers.Adadelta(learning_rate=1.0, rho=0.9, epsilon=1e-6)
+    with tf.GradientTape() as tape:
+        logits = model(image, target, training=True)
+        loss = tf.keras.losses.sparse_categorical_crossentropy(target, logits, from_logits=True)
+
+    grad = tape.gradient(loss, model.trainable_variables)
+    optimizer.apply_gradients(zip(grad, model.trainable_variables))
+
+
     print(logits)
 
 def test_decoder():

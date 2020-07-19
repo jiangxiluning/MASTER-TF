@@ -45,12 +45,41 @@ class CustomSchedule(tf.keras.optimizers.schedules.LearningRateSchedule):
 
         return tf.math.rsqrt(self.d_model) * tf.math.minimum(arg1, arg2)
 
+def get_optimizer(config):
+
+    if config.train.lr_scheduler.name:
+        if config.train.lr_scheduler.name == 'CustomSchedule':
+            lr = CustomSchedule(**config.train.lr_scheduler.args)
+        else:
+            lr = getattr(tf.keras.optimizers.schedules, config.train.lr_scheduler.name)(**config.train.lr_scheduler.args)
+    else:
+        lr = config.train.optim.args.lr
+
+
+    if config.train.optim.name == 'Adam':
+        optimizer = tf.keras.optimizers.Adam(learning_rate=lr,
+                                             epsilon=1e-9,
+                                             beta_1=0.9,
+                                             beta_2=0.98)
+    elif config.train.optim.name == 'Adadelta':
+        #optimizer = tf.optimizers.Adadelta(learning_rate=lr, rho=0.9, epsilon=1e-6)
+        #optimizer = tf.optimizers.Nadam(learning_rate=lr)
+        raise NotImplementedError(r'Adadelta is currently not supported. Due the issue https://github.com/tensorflow/tensorflow/issues/38779')
+
+    elif config.train.optim.name == 'SGD':
+        optimizer = tf.optimizers.SGD(learning_rate=lr, momentum=0.9)
+
+    else:
+        raise RuntimeError('Optimizer {} is not supported.'.format(config.train.optim.name))
+
+    return optimizer
+
 def get_dataset(config: EasyDict):
     dataset_config = config.dataset
     train_config = config.train
     test_config = config.eval
 
-    train_ds = LmdbDataset(lmdb_generator=lmdb_data_generator.generator,
+    train_ds = LmdbDataset(lmdb_generator=benchmark_data_generator.generator_lmdb,
                            lmdb_paths=dataset_config.train.datasets,
                            rgb=False,
                            image_width=dataset_config.train.width,
@@ -75,8 +104,7 @@ def get_dataset(config: EasyDict):
 def train(config: EasyDict):
     pprint.pprint(config, indent=2, compact=True)
 
-
-    writer = tf.summary.create_file_writer(config.system.outputs.tb_log_dir)
+    # writer = tf.summary.create_file_writer(config.system.outputs.tb_log_dir)
     notifier = get_notifier('slack')
     notifier = functools.partial(notifier.notify, webhook_url=config.system.slack_api)
 
@@ -95,26 +123,7 @@ def train(config: EasyDict):
                             dataset_utils.LabelTransformer.nclass,
                             (config.dataset.train.width, config.dataset.train.height))
 
-        if config.train.lr_scheduler.name:
-            if config.train.lr_scheduler.name == 'CustomSchedule':
-                lr = CustomSchedule(**config.train.lr_scheduler.args)
-            else:
-                lr = getattr(tf.keras.optimizers.schedules, config.train.lr_scheduler.name)(**config.train.lr_scheduler.args)
-        else:
-            lr = config.train.optim.args.lr
-
-
-        if config.train.optim.name == 'Adam':
-            optimizer = tf.keras.optimizers.Adam(learning_rate=lr,
-                                                 epsilon=1e-9,
-                                                 beta_1=0.9,
-                                                 beta_2=0.98)
-        elif config.train.optim.name == 'Adadelta':
-            optimizer = tf.optimizers.Adadelta(learning_rate=lr, rho=0.9, epsilon=1e-6)
-            #optimizer = tf.optimizers.Nadam(learning_rate=lr)
-
-        else:
-            raise RuntimeError('Optimizer {} is not supported.'.format(config.train.optim.name))
+        optimizer = get_optimizer(config)
 
         step = tf.Variable(1)
         epoch = tf.Variable(1)
@@ -143,6 +152,11 @@ def train(config: EasyDict):
             status = checkpoint.restore(config.train.checkpoints.finetune)
             status.expect_partial()
             logger.info("Restored from {}".format(config.train.checkpoints.finetune))
+
+            optimizer = get_optimizer(config)
+            step = tf.Variable(1)
+            epoch = tf.Variable(1)
+            best_score = tf.Variable(0, dtype=tf.float32)
         else:
             if config.train.checkpoints.resume:
                 if checkpoint_manager.latest_checkpoint:
@@ -153,7 +167,6 @@ def train(config: EasyDict):
                     logger.info("Initializing from scratch.")
             else:
                 logger.info("Initializing from scratch.")
-
 
 
     test_acc_dict = dict()
@@ -241,12 +254,11 @@ def train(config: EasyDict):
         for batch in train_ds:
             current_step = int((step.numpy() - 1) % train_ds.steps) + 1
 
-
             loss_batch = distributed_train_step(batch)
 
             # loss_batch_eval, pred, gt = distributed_eval_step(batch)
-            # pred: tf.Tensor = dataset_utils.LabelTransformer.decode_tensor(pred)
-            # gt: tf.Tensor = dataset_utils.LabelTransformer.decode_tensor(gt)
+            # pred: tf.Tensor = dataset_utils.LabelTransformer.decode_tensor(pred.numpy())
+            # gt: tf.Tensor = dataset_utils.LabelTransformer.decode_tensor(gt.numpy())
 
             # logging training
             if ((current_step) % config.train.log_interval == 0):
@@ -282,7 +294,9 @@ def train(config: EasyDict):
                             logger.info('Best iiit5k model!')
                             saved_path=checkpoint.write(config.system.outputs.checkpoints+'/OCRTransformer-Best')
                             logger.info("Saved best checkpoint for {}: {}".format(int(current_step), saved_path))
-                            notifier(message='Best score: {}'.format(acc.compute()))
+
+                            if config.system.slack_api:
+                                notifier(message='Best score: {}'.format(acc.compute()))
 
                     acc.reset()
 
