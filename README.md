@@ -26,10 +26,9 @@ pip install -r requirements.txt
 ## Dataset
 
 
-Training dataset are the word images cropped SynthText800k. And you need to make your own LMDB dataset which 
-is used by the code.
+I use Clovaai's MJ training split for training. 
 
-please check `src/dataset/lmdb_data_generator` for details.
+please check `src/dataset/benchmark_data_generator.py` for details.
 
 Eval datasets are some real scene text datasets. You can downloaded directly from [here](https://drive.google.com/drive/folders/1OG4ufr-kj2jFLmM4gyFEI0tMGYZrz8HI).
 
