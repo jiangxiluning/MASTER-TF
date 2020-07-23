@@ -26,6 +26,7 @@ from src.model.backbone import Resnet31, BasicBlock
 from src.model.model import MasterModel
 from src.model.metrics import WordAccuary
 from src.dataset.benchmark_data_generator import generator_lmdb
+from src.tools.eval_net import Predictor
 
 def test_dataset():
     config = anyconfig.load('/home/luning/dev/projects/master-tf/configs/master.yaml')
@@ -120,3 +121,13 @@ def test_hashtable():
 
     inputs = tf.random.uniform(shape=[3,3,3], minval=0, maxval=len(data_utils.LabelTransformer.dict.keys())-1, dtype=tf.int32)
     print(table.lookup(inputs))
+
+
+def test_savedModel():
+    Predictor.checkpoint_to_saved_model('/home/luning/dev/projects/master-tf/outputs/512_8_3_3_2048_2048_0.2_0_Adam_mj_my/checkpoints/OCRTransformer-Best',
+                                        '../configs/master.yaml',
+                                        '/home/luning/dev/projects/master-tf/saved_model')
+
+def test_loadModel():
+    model = tf.saved_model.load('/home/luning/dev/projects/master-tf/saved_model')
+    print(model.decode(tf.random.normal([10, 48, 160, 1], dtype=tf.float32)))

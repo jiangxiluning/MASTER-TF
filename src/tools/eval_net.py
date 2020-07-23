@@ -60,17 +60,10 @@ class Predictor:
         status.expect_partial()
 
 
-        model(tf.random.normal([1, 48, 160, 1], dtype=tf.float32, name='image'), tf.constant(np.ones([1, 51]), dtype=tf.int32, name='transcript'))
-        #model.decode(image=tf.random.normal([1, 48, 160, 1], dtype=tf.float32))
-
+        model([tf.random.normal([1, 48, 160, 1], dtype=tf.float32, name='image'), tf.constant(np.ones([1, 52]), dtype=tf.int32, name='transcript')])
         signatures = {
-            'serving_default':
-                model.call.get_concrete_function(tf.TensorSpec([None, 48, 160, 1], dtype=tf.float32, name='image'),
-                                                 tf.TensorSpec([None, 51], dtype=tf.int32, name='transcript')),
-            'decode': model.decode.get_concrete_function(tf.TensorSpec([None, 48, 160, 1], dtype=tf.float32, name='image'),
-                                                         tf.TensorSpec(None, dtype=tf.bool, name='padding'))
+            'decode': model.decode.get_concrete_function(tf.TensorSpec([None, 48, 160, 1], dtype=tf.float32, name='image')
+                                                         )
         }
-
-        #model.save(output_path, include_optimizer=False)
         tf.saved_model.save(model, output_path, signatures=signatures)
         print('Model is saved at {}'.format(output_path))

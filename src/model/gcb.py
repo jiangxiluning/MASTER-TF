@@ -107,8 +107,13 @@ class GolbalContextBlock(tf.keras.layers.Layer):
                 name='channel_mul_conv'
             )
 
+    @tf.function
     def spatial_pool(self, inputs: tf.Tensor):
-        B, H, W, C = inputs.shape
+        B = tf.shape(inputs)[0]
+        H = tf.shape(inputs)[1]
+        W = tf.shape(inputs)[2]
+        C = tf.shape(inputs)[3]
+
         if self.pooling_type == 'att':
 
             # B, H, W, h, C/h
@@ -167,7 +172,11 @@ class GolbalContextBlock(tf.keras.layers.Layer):
             # B, 1, 1, C
             channel_concat_term = self.channel_concat_conv(context)
 
-            B, H, W, C = out.shape
+
+            B = tf.shape(out)[0]
+            H = tf.shape(out)[1]
+            W = tf.shape(out)[2]
+            C = tf.shape(out)[3]
             out = tf.concat([out, tf.broadcast_to(channel_concat_term, shape=(B, H, W, C))], axis=-1)
             out = self.cat_conv(out)
             out = self.layer_norm(out)

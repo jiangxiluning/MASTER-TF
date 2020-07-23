@@ -16,6 +16,7 @@
 from typing import *
 
 from tensorflow import keras
+import tensorflow as tf
 
 from .gcb import GolbalContextBlock
 
@@ -39,11 +40,14 @@ class BasicBlock(keras.layers.Layer):
         self.conv2 = conv33(planes, stride)
         self.bn2 = keras.layers.BatchNormalization(momentum=0.1,
                                                    epsilon=1e-5)
-        self.downsample = downsample
-        self.stride = stride
-        self.use_gcb = use_gcb
+        if downsample:
+            self.downsample = downsample
+        else:
+            self.downsample = tf.identity
 
-        if self.use_gcb:
+        self.stride = stride
+
+        if use_gcb:
             self.gcb = GolbalContextBlock(
                 inplanes=planes,
                 ratio=gcb_config['ratio'],
@@ -52,9 +56,10 @@ class BasicBlock(keras.layers.Layer):
                 fusion_type=gcb_config['fusion_type'],
                 att_scale=gcb_config['att_scale']
             )
+        else:
+            self.gcb = tf.identity
 
     def call(self, inputs, **kwargs):
-        residual = inputs
 
         out = self.conv1(inputs)
         out = self.bn1(out)
@@ -63,15 +68,11 @@ class BasicBlock(keras.layers.Layer):
         out = self.conv2(out)
         out = self.bn2(out)
 
-        if self.use_gcb:
-            out = self.gcb(out)
 
-        if self.downsample is not None:
-            residual = self.downsample(inputs)
+        out = self.gcb(out)
+        out = out + self.downsample(inputs)
 
-        out += residual
         out = self.relu(out)
-
         return out
 
 

@@ -58,36 +58,6 @@ def create_look_ahead_mask(size):
     mask = 1 - tf.linalg.band_part(tf.ones((size, size)), -1, 0)
     return mask  # (seq_len, seq_len)
 
-@tf.function
-def attention(query: tf.Tensor,
-              key: tf.Tensor,
-              value: tf.Tensor,
-              mask: tf.Tensor,
-              dropout: tf.float32,
-              training: tf.Tensor):
-    """
-    self-attention module
-    Args:
-        query:
-        key:
-        value:
-        mask:
-        dropout:
-
-    Returns:
-
-    """
-    d_k = value.shape[-1]
-    score = tf.matmul(query, tf.transpose(key, perm=(0, 1, 3, 2))) / tf.sqrt(tf.cast(d_k, dtype=query.dtype))
-
-    if mask is not None:
-        score += mask * -1e9
-
-    p_attn = keras.activations.softmax(score, axis=-1)
-    if dropout is not None:
-        p_attn = keras.layers.Dropout(rate=dropout)(p_attn, training=training)
-    return tf.matmul(p_attn, value), p_attn
-
 class MultiHeadAttention(keras.layers.Layer):
     def __init__(self, h, d_model, dropout=0.1, **kwargs):
         super(MultiHeadAttention, self).__init__(name='MultiHeadAttention', **kwargs)
@@ -97,10 +67,10 @@ class MultiHeadAttention(keras.layers.Layer):
         self.h = h
         self.linears = clones(keras.layers.Dense(d_model), 4)
         self.attn = None
-        self.dropout = tf.constant(dropout, dtype=tf.float32)
+        self.dropout = dropout
 
     def call(self, query: tf.Tensor, key: tf.Tensor, value: tf.Tensor, mask: tf.Tensor, training=False):
-        B = query.shape[0]
+        B = tf.shape(query)[0]
 
         qkv = []
         for l, x in zip(self.linears, (query, key, value)):
@@ -108,7 +78,24 @@ class MultiHeadAttention(keras.layers.Layer):
             x = tf.transpose(x, perm=(0, 2, 1, 3))
             qkv.append(x)
 
-        x, self.attn = attention(qkv[0], qkv[1], qkv[2], mask=mask, dropout=self.dropout, training=tf.constant(training))
+
+        # attention
+        query = qkv[0]
+        key = qkv[1]
+        value = qkv[2]
+
+        d_k = value.shape[-1]
+        score = tf.matmul(query, tf.transpose(key, perm=(0, 1, 3, 2))) / tf.sqrt(tf.cast(d_k, dtype=query.dtype))
+
+        if mask is not None:
+            score += mask * -1e9
+
+        p_attn = keras.activations.softmax(score, axis=-1)
+        p_attn = keras.layers.Dropout(rate=self.dropout)(p_attn, training=training)
+        x = tf.matmul(p_attn, value)
+
+        self.attn = p_attn
+
 
         x = tf.transpose(x, perm=(0, 2, 1, 3))
         x = tf.reshape(x, shape=(B, -1, self.h * self.d_k))
@@ -178,7 +165,7 @@ class Decoder(keras.layers.Layer):
         self.norm = keras.layers.LayerNormalization()
 
     def call(self, x, memory, src_mask, tgt_mask, training=False):
-        _, T, _ = x.shape
+        T = tf.shape(x)[1]
         x = x + self.decoder_pe[:, :T]
 
         for layer in self.layers:

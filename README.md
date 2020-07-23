@@ -12,6 +12,9 @@ This repo is its tensorflow implemention.
 - [x] Greedy Decoding
 - [x] Single image inference
 - [x] Eval iiit5k
+- [x] Convert Checkpoint to SavedModel format
+- [x] refactory codes to be more tensorflow-style and be more consistent to graph mode
+- [x] support tensorflow serving mode
 
 
 ## Preparation  
@@ -64,6 +67,15 @@ Please download the checkpoint and model config from [here](https://pan.baidu.co
 python eval_iiit5k.py --ckpt [checkpoint file] --cfg [model config] -o [output dir] -i [iiit5k lmdb test dataset]
 ```
 The checkpoint file argument should be `${where you unzip}/backup/512_8_3_3_2048_2048_0.2_0_Adam_mj_my/checkpoints/OCRTransformer-Best` 
+
+## Tensorflow Serving
+
+For tensorflow serving, you should use savedModel format, I provided test case to show you how to convert a checkpoint to savedModel and how to use it.
+
+```bash
+pytest -s tests/test_units::test_savedModel  #check the test case test_savedModel in tests/test_units
+pytest -s tests/test_units::test_loadModel  # call decode to inference and get predicted transcript and logits out.
+```
 
 ## Citations
 If you find this code useful please cite our [paper](https://arxiv.org/abs/1910.02562):

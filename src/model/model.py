@@ -32,6 +32,8 @@ class MasterModel(tf.keras.models.Model):
         self.vocab_size = vocab_size
         self.d_model = config.model_size
         self.headers = config.multiheads
+        self.config = config
+        self.image_size = image_size
 
         self.feature_extractor = backbone.Resnet31(backbone.BasicBlock, backbone_config=config.backbone)
         self.seq_embedding = keras.layers.Embedding(vocab_size, self.d_model)
@@ -51,23 +53,36 @@ class MasterModel(tf.keras.models.Model):
         self.feature_pe = transformer.positional_encoding(image_size[0] * image_size[1], self.d_model)
         self.linear = keras.layers.Dense(vocab_size, kernel_initializer=tf.initializers.he_uniform())
 
+    def get_config(self):
+        return { 'config': self.config,
+                 'vocab_size': self.vocab_size,
+                 'image_size': self.image_size}
+
+    @tf.function
     def make_mask(self, target):
         look_ahead_mask = transformer.create_look_ahead_mask(tf.shape(target)[1])
         target_padding_mask = transformer.create_padding_mask(target, utils.LabelTransformer.dict['<PAD>'])
         combined_mask = tf.maximum(target_padding_mask, look_ahead_mask)
         return None, combined_mask
 
-    @tf.function
-    def call(self, image: tf.Tensor, transcript: tf.Tensor):
-        feature = self.feature_extractor(image, training=True)
-        B, H, W, C = feature.shape
+
+    def call(self, inputs, **kwargs):
+        image: tf.Tensor = inputs[0]
+        transcript: tf.Tensor = inputs[1]
+
+        feature = self.feature_extractor(image, **kwargs)
+
+        B = tf.shape(feature)[0]
+        H = tf.shape(feature)[1]
+        W = tf.shape(feature)[2]
+        C = tf.shape(feature)[3]
 
         feature = tf.reshape(feature, shape=(B, H*W, C))
         memory = feature + self.feature_pe[:, :H*W, :]
 
-        _, tgt_mask = self.make_mask(transcript)
+        _, tgt_mask = self.make_mask(transcript[:, :-1])
 
-        output = self.decoder(self.seq_embedding(transcript), memory, None, tgt_mask, training=True)
+        output = self.decoder(self.seq_embedding(transcript[:, :-1]), memory, None, tgt_mask, **kwargs)
         #output, _ = self.decoder(transcript, memory, training, tgt_mask, None)
         logits = self.linear(output)
 
@@ -107,10 +122,11 @@ class MasterModel(tf.keras.models.Model):
     #
     #     return output, final_logits
 
+
     @tf.function
     def decode(self,
                image: tf.Tensor,
-               padding: tf.bool = tf.constant(True)):
+               ):
         """
 
         Args:
@@ -122,13 +138,18 @@ class MasterModel(tf.keras.models.Model):
         """
 
         feature = self.feature_extractor(image, training=False)
-        B, H, W, C = feature.shape
+        B = tf.shape(feature)[0]
+        H = tf.shape(feature)[1]
+        W = tf.shape(feature)[2]
+        C = tf.shape(feature)[3]
         feature = tf.reshape(feature, shape=(B, H*W, C))
         memory = feature + self.feature_pe[:, :H*W, :]
 
         max_len = tf.constant(utils.LabelTransformer.max_length, dtype=tf.int32)
         start_symbol = tf.constant(utils.LabelTransformer.dict['<SOS>'], dtype=tf.int32)
         padding_symbol = tf.constant(utils.LabelTransformer.dict['<PAD>'], dtype=tf.int32)
+
+        padding: tf.bool = tf.constant(True)
 
         if padding:
             ys = tf.fill(dims=(B, max_len - 1), value=padding_symbol)
@@ -142,7 +163,7 @@ class MasterModel(tf.keras.models.Model):
         final_logits = tf.zeros(shape=(B, max_len - 1, self.vocab_size), dtype=tf.float32)
         # max_len = len + 2
         for i in range(max_len - 1):
-            #tf.autograph.experimental.set_loop_options(shape_invariants=[(final_logits, tf.TensorShape([None, None, 66]))])
+            tf.autograph.experimental.set_loop_options(shape_invariants=[(final_logits, tf.TensorShape([None, None, 66]))])
             _, ys_mask = self.make_mask(ys)
             #output, _ = self.decoder(ys, memory, False, ys_mask, None)
             output = self.decoder(self.seq_embedding(ys), memory, None, ys_mask, training=False)

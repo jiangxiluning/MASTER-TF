@@ -180,11 +180,11 @@ def train(config: EasyDict):
 
 
     def train_step(batch):
-        images = batch[0]
+        #images = batch[0]
         transcipts = batch[1]
 
         with tf.GradientTape() as tape:
-            logits = model(images, transcipts[:, :-1], training=True)
+            logits = model(batch, training=True)
 
             flatten_gt = tf.reshape(transcipts[:, 1:], shape=(-1, 1))
             flatten_pred = tf.reshape(logits, shape=(-1, logits.shape[-1]))
