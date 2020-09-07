@@ -163,7 +163,7 @@ class MasterModel(tf.keras.models.Model):
         final_logits = tf.zeros(shape=(B, max_len - 1, self.vocab_size), dtype=tf.float32)
         # max_len = len + 2
         for i in range(max_len - 1):
-            tf.autograph.experimental.set_loop_options(shape_invariants=[(final_logits, tf.TensorShape([None, None, 66]))])
+            tf.autograph.experimental.set_loop_options(shape_invariants=[(final_logits, tf.TensorShape([None, None, self.vocab_size]))])
             _, ys_mask = self.make_mask(ys)
             #output, _ = self.decoder(ys, memory, False, ys_mask, None)
             output = self.decoder(self.seq_embedding(ys), memory, None, ys_mask, training=False)
