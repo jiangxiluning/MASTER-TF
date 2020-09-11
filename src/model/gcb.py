@@ -122,7 +122,7 @@ class GolbalContextBlock(tf.keras.layers.Layer):
             x = tf.transpose(x, perm=(0, 3, 1, 2, 4))
 
             # B*h, H, W, C/h
-            x = tf.reshape(inputs, shape=(B*self.headers, H, W, self.single_header_inplanes))
+            x = tf.reshape(x, shape=(B*self.headers, H, W, self.single_header_inplanes))
 
             input_x = x
 
