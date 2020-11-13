@@ -51,7 +51,7 @@ python train.py -c [your_config].yaml -f [checkpoint]
 
 ## Eval
 
-Currently, you can download checkpoint from [here](https://pan.baidu.com/s/1ijpo8WRZHR-AyDclxQVDiw) with code **o6g9**, this checkpoint was trained with MJ and selected
+Currently, you can download checkpoint from [here](https://pan.baidu.com/s/1ijpo8WRZHR-AyDclxQVDiw) with code **o6g9**, or from [Google Driver](https://drive.google.com/file/d/1gpfMvnQWZimogQLFM_teOwiLNz-ZEF02/view?usp=sharing), this checkpoint was trained with MJ and selected
 for the best performance of iiit5k dataset. Below is the comparision between pytorch version and tensorflow version.
 
 | Framework | Dataset | Word Accuracy | Training Details |
