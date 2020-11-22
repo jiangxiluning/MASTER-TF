@@ -188,7 +188,7 @@ class Resnet31(keras.layers.Layer):
         layers.append(block(planes, stride, downsample, gcb_config, use_gcb))
         self.inplanes = planes * block.expansion
         for _ in range(1, blocks):
-            layers.append(block(planes, gcb_config=gcb_config, use_gcb=use_gcb))
+            layers.append(block(planes))
 
         return keras.Sequential(layers, name='make_layer')
 
