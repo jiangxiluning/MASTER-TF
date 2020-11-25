@@ -35,6 +35,7 @@ please check `src/dataset/benchmark_data_generator.py` for details.
 
 Eval datasets are some real scene text datasets. You can downloaded directly from [here](https://drive.google.com/drive/folders/1OG4ufr-kj2jFLmM4gyFEI0tMGYZrz8HI).
 
+
 ## Training
 
 ```bash
@@ -50,6 +51,8 @@ python train.py -c [your_config].yaml -f [checkpoint]
 
 
 ## Eval
+
+**Since I made change to the usage of gcb block, the weight could not be suitable to HEAD. If you want to test the model, please use https://github.com/jiangxiluning/MASTER-TF/commit/85f9217af8697e41aefe5121e580efa0d6d04d92**
 
 Currently, you can download checkpoint from [here](https://pan.baidu.com/s/1ijpo8WRZHR-AyDclxQVDiw) with code **o6g9**, or from [Google Driver](https://drive.google.com/file/d/1gpfMvnQWZimogQLFM_teOwiLNz-ZEF02/view?usp=sharing), this checkpoint was trained with MJ and selected
 for the best performance of iiit5k dataset. Below is the comparision between pytorch version and tensorflow version.
