@@ -1,20 +1,42 @@
-# This is a reimplementation of [MASTER](https://arxiv.org/abs/1910.02562).
+# MASTER-TensorFlow ![](https://img.shields.io/badge/license-MIT-blue)
 
-MASTER is a scene text recognition model which is based on self-attention mechanism. Below is the architecture.
-![WX20200703-001140.png](https://i.loli.net/2020/07/03/Nj1CPvrT7J2ehWy.png)
+<div align=center>
+<img src="https://github.com/wenwenyu/MASTER-pytorch/blob/main/assets/logo.jpeg" width="200" height="200" />
+</div>
 
-This repo is a tensorflow implemention which may differ from our pytorch implementaion when we have done in PingAn for paper.
-            
-            
-This repo is its tensorflow implemention.
+
+TensorFlow reimplementation of ["MASTER: Multi-Aspect Non-local Network for Scene Text Recognition"](https://arxiv.org/abs/1910.02562)
+(Pattern Recognition 2021). This project is different from our original implementation that builds on the privacy codebase FastOCR of the company.
+You can also find PyTorch reimplementation at [MASTER-pytorch](https://github.com/wenwenyu/MASTER-pytorch) repository,
+and the performance is almost identical. (PS. Logo inspired by the Master Oogway in Kung Fu Panda)
+
+
+## Honors based on MASTER
+* 1st place (2020/10) solution to [ICDAR 2019 Robust Reading Challenge on Reading Chinese Text on Signboard (task2)](https://rrc.cvc.uab.es/?ch=12&com=evaluation&task=2)
+* 2nd and 5th places (2020/10) in [The 5th China Innovation Challenge on Handwritten Mathematical Expression Recognition](https://www.heywhale.com/home/competition/5f703ac023f41e002c3ed5e4/content/6)
+* 4th place (2019/08) of [ICDAR 2017 Robust Reading Challenge on COCO-Text (task2)](https://rrc.cvc.uab.es/?ch=5&com=evaluation&task=2)
+* More will be released
+
+
+## Introduction
+MASTER is a self-attention based scene text recognizer that (1) not only encodes the input-output attention,
+but also learns self-attention which encodes feature-feature and target-target relationships inside the encoder
+and decoder and (2) learns a more powerful and robust intermediate representation to spatial distortion and
+(3) owns a better training and evaluation efficiency. Overall architecture shown follows.
+
+<div align=center>
+<img src="https://github.com/wenwenyu/MASTER-pytorch/blob/main/assets/overall.png" />
+</div>
+          
+This repo contains the following features.
 
 - [x] Multi-gpu Training
 - [x] Greedy Decoding
 - [x] Single image inference
 - [x] Eval iiit5k
 - [x] Convert Checkpoint to SavedModel format
-- [x] refactory codes to be more tensorflow-style and be more consistent to graph mode
-- [x] support tensorflow serving mode
+- [x] Refactory codes to be more tensorflow-style and be more consistent to graph mode
+- [x] Support tensorflow serving mode
 
 
 ## Preparation  
@@ -80,18 +102,18 @@ pytest -s tests/test_units::test_savedModel  #check the test case test_savedMode
 pytest -s tests/test_units::test_loadModel  # call decode to inference and get predicted transcript and logits out.
 ```
 
+
 ## Citations
-If you find this code useful please cite our [paper](https://arxiv.org/abs/1910.02562):
+If you find MASTER useful please cite our [paper](https://arxiv.org/abs/1910.02562):
 ```bibtex
-@misc{lu2019master,
-    title={MASTER: Multi-Aspect Non-local Network for Scene Text Recognition},
-    author={Ning Lu and Wenwen Yu and Xianbiao Qi and Yihao Chen and Ping Gong and Rong Xiao},
-    year={2019},
-    eprint={1910.02562},
-    archivePrefix={arXiv},
-    primaryClass={cs.CV}
+@article{Lu2021MASTER,
+  title={{MASTER}: Multi-Aspect Non-local Network for Scene Text Recognition},
+  author={Ning Lu and Wenwen Yu and Xianbiao Qi and Yihao Chen and Ping Gong and Rong Xiao and Xiang Bai},
+  journal={Pattern Recognition},
+  year={2021}
 }
 ```
+
 
 ## License
 This project is licensed under the MIT License. See LICENSE for more details.
